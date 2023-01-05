@@ -10,13 +10,13 @@ To build the project, run `mvn clean install`, in case you want to include all d
 
 following configurations are supported
 
-- connector.class: com.timeplus.kafkaconnect.TimeplusSinkConnector
+- connector.class: `com.timeplus.kafkaconnect.TimeplusSinkConnector`
 - timeplus.sink.address: timeplus cloud server address
 - timeplus.sink.workspace: timeplus workspace name
 - timeplus.sink.apikey: timeplus api key
 - timeplus.sink.stream: destination stream name
 - timeplus.sink.createStream: whether create a new stream
-- timeplus.sink.dataFormat: stream data format, support raw and json
+- timeplus.sink.dataFormat: stream data format, support `raw` and `json`
 
 here is an example configuration:
 
