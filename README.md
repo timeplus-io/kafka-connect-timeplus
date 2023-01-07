@@ -1,37 +1,39 @@
-# kafka-connect-timeplus
+# Timeplus Sink Connector
 
-kafka timeplus sink connector can sync your kafka data into timeplus using kafka connect.
+A Kafka Connect plugin for Timeplus.
 
-## build
+## Build
 
 To build the project, run `mvn clean install`, in case you want to include all dependency to simplify your deployment, run `mvn clean compile assembly:single`
 
-## configurations
+## Configurations
 
-following configurations are supported
+The following configurations are supported
 
-- connector.class: com.timeplus.kafkaconnect.TimeplusSinkConnector
-- timeplus.sink.address: timeplus cloud server address
-- timeplus.sink.workspace: timeplus workspace name
-- timeplus.sink.apikey: timeplus api key
-- timeplus.sink.stream: destination stream name
-- timeplus.sink.createStream: whether create a new stream
-- timeplus.sink.dataFormat: stream data format, support raw and json
+| key                        | value                                              |
+| -------------------------- | -------------------------------------------------- |
+| name                       | TimeplusSink                                       |
+| connector.class            | com.timeplus.kafkaconnect.TimeplusSinkConnector    |
+| timeplus.sink.address      | Address to Timeplus Cloud or self-managed Timeplus |
+| timeplus.sink.workspace    | Timeplus workspace ID                              |
+| timeplus.sink.apikey       | API Key for the workspace                          |
+| timeplus.sink.stream       | destination stream name                            |
+| timeplus.sink.createStream | whether create a new stream                        |
+| timeplus.sink.dataFormat   | stream data format. Either `raw` or `json`         |
 
-here is an example configuration:
+Here is an example configuration:
 
-```
-{
-       "connector.class": "com.timeplus.kafkaconnect.TimeplusSinkConnector",
-       "tasks.max": 1,
-       "topics": "car_live_data",
-       "timeplus.sink.address": "https://dev.timeplus.cloud",
-       "timeplus.sink.workspace": "tp-demo",
-       "timeplus.sink.apikey": "APIKey",
-       "timeplus.sink.stream": "car_sink_raw",
-       "timeplus.sink.createStream": true,
-       "timeplus.sink.dataFormat": "raw", // support raw and json
-       "key.converter": "org.apache.kafka.connect.storage.StringConverter",
-       "value.converter": "org.apache.kafka.connect.storage.StringConverter"
-}
+```properties
+name: TimeplusSink
+connector.class: com.timeplus.kafkaconnect.TimeplusSinkConnector
+tasks.max: 1
+topics: my_topic
+timeplus.sink.address: https://us.timeplus.cloud
+timeplus.sink.workspace: abc123
+timeplus.sink.apikey: 60_char_API_Key
+timeplus.sink.stream: data_from_kafka
+timeplus.sink.createStream: true
+timeplus.sink.dataFormat: raw
+key.converter: org.apache.kafka.connect.storage.StringConverter
+value.converter: org.apache.kafka.connect.storage.StringConverter
 ```
