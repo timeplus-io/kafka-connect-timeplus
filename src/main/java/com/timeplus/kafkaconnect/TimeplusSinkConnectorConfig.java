@@ -14,17 +14,17 @@ Timeplus Sink Config
 public class TimeplusSinkConnectorConfig extends AbstractConfig {
 
     static final String SINK_ADDRESS_CONFIG = "timeplus.sink.address";
-    private static final String SINK_ADDRESS_DOC = "The address of timeplus cloud";
+    private static final String SINK_ADDRESS_DOC = "The address of Timeplus Cloud";
     private static final String SINK_ADDRESS_DISPLAY = "Timeplus Address";
     private static final String SINK_ADDRESS_DEFAULT = "https://dev.timeplus.cloud";
 
     static final String SINK_WORKSPACE_CONFIG = "timeplus.sink.workspace";
-    private static final String SINK_WORKSPACE_DOC = "The warkspace of timeplus cloud";
+    private static final String SINK_WORKSPACE_DOC = "The workspace of Timeplus Cloud";
     private static final String SINK_WORKSPACE_DISPLAY = "Timeplus Workspace";
     private static final String SINK_WORKSPACE_DEFAULT = "default";
 
     static final String SINK_APIKEY_CONFIG = "timeplus.sink.apikey";
-    private static final String SINK_APIKEY_DOC = "The apikey of timeplus cloud";
+    private static final String SINK_APIKEY_DOC = "The apikey of Timeplus Cloud";
     private static final String SINK_APIKEY_DISPLAY = "Timeplus APIKey";
     private static final String SINK_APIKEY_DEFAULT = "";
 

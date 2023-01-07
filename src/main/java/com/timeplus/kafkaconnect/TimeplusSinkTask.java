@@ -68,12 +68,18 @@ public class TimeplusSinkTask extends SinkTask {
 
     @Override
     public void put(Collection<SinkRecord> records) {
+        if (records.size() == 0) {
+            return;
+        }
+
         String bodyString = "";
+
         for (SinkRecord record : records) {
             if (!streamCreated && this.createStream) {
                 createStream(record.value().toString());
                 streamCreated = true; // only create once
             }
+
             bodyString = bodyString + record.value() + "\n";
         }
 
@@ -89,6 +95,7 @@ public class TimeplusSinkTask extends SinkTask {
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
                 System.out.println("ingest failed " + response.body().string());
+                System.out.println("ingest failed request body " + bodyString);
             }
         } catch (IOException e) {
             System.out.println("ingest to post " + e.getMessage());
@@ -100,7 +107,7 @@ public class TimeplusSinkTask extends SinkTask {
         System.out.println("sink task stopped");
     }
 
-    private String getCreateRowPayload(String stream) {
+    private String getCreateRawPayload(String stream) {
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
 
@@ -128,7 +135,7 @@ public class TimeplusSinkTask extends SinkTask {
     private void createStream(String event) {
         // TODO check if the stream already exist
         if (this.dataFormat.equals("raw")) {
-            this.createPayload = getCreateRowPayload(this.stream);
+            this.createPayload = getCreateRawPayload(this.stream);
         } else {
             this.createPayload = getCreateJSONPayload(this.stream, event);
         }
