@@ -9,6 +9,8 @@ import okhttp3.Response;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.logging.Logger;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.json.JSONArray;
@@ -18,6 +20,7 @@ import org.json.JSONObject;
 Timeplus Sink Task
 */
 public class TimeplusSinkTask extends SinkTask {
+    private static Logger logger = Logger.getLogger(TimeplusSinkTask.class.getName());
 
     private static final MediaType JSON = MediaType.get("application/json;format=streaming");
     private static final MediaType RAW = MediaType.get("text/plain;format=lines");
@@ -94,17 +97,18 @@ public class TimeplusSinkTask extends SinkTask {
         try {
             response = client.newCall(request).execute();
             if (!response.isSuccessful()) {
-                System.out.println("ingest failed " + response.body().string());
-                System.out.println("ingest failed request body " + bodyString);
+                logger.warning("ingest failed " + response.body().string());
+                logger.warning("ingest failed request body " + bodyString);
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("ingest to post " + e.getMessage());
+            logger.warning("ingest to post " + e.getMessage());
         }
     }
 
     @Override
     public void stop() {
-        System.out.println("sink task stopped");
+        logger.info("sink task stopped");
     }
 
     private String getCreateRawPayload(String stream) {
@@ -151,14 +155,14 @@ public class TimeplusSinkTask extends SinkTask {
         try {
             response = client.newCall(request).execute();
             if (response.isSuccessful()) {
-                System.out.println("create stream success " + response.body().string());
+                logger.info("create stream success " + response.body().string());
             } else {
-                System.out.println("create stream failed " + response.body().string());
+                logger.warning("create stream failed " + response.body().string());
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("create stream failed " + e.getMessage());
+            logger.warning("create stream failed " + e.getMessage());
         }
-
     }
 
     private JSONArray infer(String event) {
@@ -178,16 +182,16 @@ public class TimeplusSinkTask extends SinkTask {
             response = client.newCall(request).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string(); // can only be called once
-                System.out.println("infer stream success " + resp);
+                logger.info("infer stream success " + resp);
                 JSONObject respObj = new JSONObject(resp);
                 return respObj.getJSONArray("inferred_columns");
             } else {
-                System.out.println("infer stream failed " + response.body().string());
+                logger.warning("infer stream failed " + response.body().string());
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("infer stream failed " + e.getMessage());
+            logger.warning("infer stream failed " + e.getMessage());
         }
         return new JSONArray();
     }
-
 }
