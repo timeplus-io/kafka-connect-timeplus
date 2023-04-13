@@ -21,18 +21,21 @@
     <jacoco.unit-tests.limit.method-complexity>6</jacoco.unit-tests.limit.method-complexity>
     <kafka.version>3.2.0</kafka.version>
     <kafka.connect.maven.plugin.version>0.12.0</kafka.connect.maven.plugin.version>
+    <org.mockito.core.version>4.6.1</org.mockito.core.version>
+    <org.mockito.junit.version>5.2.0</org.mockito.junit.version>
+    <com.squareup.okhttp3.version>4.10.0</com.squareup.okhttp3.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.6.1</version>
+      <version>${org.mockito.core.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
     <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>5.2.0</version>
+      <version>${org.mockito.junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -68,7 +71,7 @@
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
-      <version>4.10.0</version>
+      <version>${com.squareup.okhttp3.version}</version>
     </dependency>
     <dependency>
       <groupId>org.json</groupId>
