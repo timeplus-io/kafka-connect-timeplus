@@ -24,22 +24,22 @@ public class TimeplusSinkTask extends SinkTask {
 
     private static final MediaType JSON = MediaType.get("application/json;format=streaming");
     private static final MediaType RAW = MediaType.get("text/plain;format=lines");
-    private final OkHttpClient client = new OkHttpClient();
+    OkHttpClient client = new OkHttpClient();
 
-    private String address;
-    private String workspace;
-    private String apiKey;
-    private String stream;
-    private String dataFormat;
-    private MediaType contentType;
-    private Boolean createStream;
+    String address;
+    String workspace;
+    String apiKey;
+    String stream;
+    String dataFormat;
+    MediaType contentType;
+    Boolean createStream;
 
-    private String ingestUrl;
-    private String streamUrl;
-    private String inferUrl;
+    String ingestUrl;
+    String streamUrl;
+    String inferUrl;
 
-    private String createPayload;
-    private Boolean streamCreated;
+    String createPayload;
+    Boolean streamCreated;
 
     @Override
     public String version() {
@@ -136,7 +136,7 @@ public class TimeplusSinkTask extends SinkTask {
         return payload.toString();
     }
 
-    private void createStream(String event) {
+    void createStream(String event) {
         // TODO check if the stream already exist
         if (this.dataFormat.equals("raw")) {
             this.createPayload = getCreateRawPayload(this.stream);
@@ -182,9 +182,12 @@ public class TimeplusSinkTask extends SinkTask {
             response = client.newCall(request).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string(); // can only be called once
-                logger.info("infer stream success " + resp);
-                JSONObject respObj = new JSONObject(resp);
-                return respObj.getJSONArray("inferred_columns");
+                if (resp != null) {
+                    logger.info("infer stream success " + resp);
+                    JSONObject respObj = new JSONObject(resp);
+                    response.close();
+                    return respObj.getJSONArray("inferred_columns");
+                }
             } else {
                 logger.warning("infer stream failed " + response.body().string());
             }
