@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.images.PullPolicy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
 
@@ -24,7 +25,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.JSONObject;
@@ -34,7 +34,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 public class IntegrationTest {
     private final static String TOPIC_NAME = "test-topic";
@@ -48,7 +47,8 @@ public class IntegrationTest {
 
     @Container
     public GenericContainer kafkaConect = new GenericContainer(
-            DockerImageName.parse("timeplus/timeplus-kafkaconnect-sink:dev_cbf0969"))
+            DockerImageName.parse("timeplus/timeplus-kafkaconnect-sink:latest"))
+            .withImagePullPolicy(PullPolicy.alwaysPull())
             .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost")
             .withEnv("CONNECT_GROUP_ID", "cg_connect_timeplus")
             .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "connect_timeplus_config")
