@@ -119,6 +119,24 @@
         </dependencies>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Implementation-Title>Timeplus Kafka Sink Connect</Implementation-Title>
+              <Implementation-Version>1.0.1</Implementation-Version>
+              <Implementation-Vendor>Timeplus Inc.</Implementation-Vendor>
+              <Implementation-Vendor-Email>gang@timeplus.com</Implementation-Vendor-Email>
+              <Implementation-Vendor-Website>https://www.timeplus.com/</Implementation-Vendor-Website>
+              <Built-By>Gang Tao</Built-By>
+              <Build-Jdk>1.8</Build-Jdk>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${jacoco-maven-plugin.version}</version>
