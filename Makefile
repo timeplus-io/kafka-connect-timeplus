@@ -18,6 +18,9 @@ one_jar:
 dep:
 	mvn dependency:copy-dependencies
 
+it:
+	mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationTest
+
 docker: Dockerfile one_jar
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) -t $(IMAGE_NAME) .
 
