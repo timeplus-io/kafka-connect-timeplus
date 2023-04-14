@@ -28,10 +28,13 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.JSONObject;
+import org.json.JSONArray;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
@@ -40,6 +43,7 @@ public class IntegrationTest {
     private final static String STREAM = "test_kafka_connect_timeplus_sink";
 
     Network network = Network.newNetwork();
+    JSONObject eventJson = new JSONObject();
 
     @Container
     public KafkaContainer kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.0.1")).withKraft()
@@ -80,6 +84,9 @@ public class IntegrationTest {
 
         kafkaConect.withEnv("CONNECT_BOOTSTRAP_SERVERS", kafka.getNetworkAliases().get(0) + ":9092");
         kafkaConect.start();
+
+        eventJson.put("id", 123);
+        eventJson.put("name", "test");
     }
 
     @AfterEach
@@ -99,10 +106,11 @@ public class IntegrationTest {
         KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
 
         // Create sample event to send to Kafka
-        String event = "{\"id\": 123, \"name\": \"test\"}";
+
+        String eventString = eventJson.toString();
 
         // Create Kafka producer record
-        ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC_NAME, event);
+        ProducerRecord<String, String> record = new ProducerRecord<>(TOPIC_NAME, eventString);
 
         // Send event to Kafka and do not wait for acknowledgement
         for (int i = 0; i < 3; i++) {
@@ -201,13 +209,12 @@ public class IntegrationTest {
         System.out.println(response.body().string());
     }
 
-    void query() {
+    List<JSONArray> query() {
         OkHttpClient client = new OkHttpClient();
         String url = System.getenv("TIMEPLUS_ADDRESS") + "/" + System.getenv("TIMEPLUS_WORKSPACE")
                 + "/api/v1beta2/queries/";
 
         MediaType mediaType = MediaType.parse("application/json");
-
         JSONObject requestBodyJson = new JSONObject();
         requestBodyJson.put("sql", "select * from table(" + STREAM + ")");
 
@@ -220,30 +227,29 @@ public class IntegrationTest {
                 .addHeader("X-API-KEY", System.getenv("TIMEPLUS_API_KEY"))
                 .build();
 
+        List<JSONArray> result = new ArrayList<JSONArray>();
+
         EventSourceListener listener = new EventSourceListener() {
             @Override
             public void onEvent(EventSource eventSource, String id, String type, String data) {
                 if (type == null) {
-                    System.out.println("got event  " + data);
-                } else if (type.equals("query")) {
-                    System.out.println("got query " + data);
+                    JSONArray events = new JSONArray(data);
+                    result.add(events);
                 }
             }
 
             @Override
             public void onOpen(EventSource eventSource, Response response) {
-
             }
 
             @Override
             public void onClosed(EventSource eventSource) {
-                // Handle the connection open event
             }
 
             @Override
             public void onFailure(EventSource eventSource, Throwable e,
                     Response response) {
-                // Handle the connection failure event
+                Assertions.fail(e);
             }
         };
 
@@ -257,6 +263,7 @@ public class IntegrationTest {
         }
 
         eventSource.cancel();
+        return result;
     }
 
     @Test
@@ -293,7 +300,18 @@ public class IntegrationTest {
         }
 
         // query timeplus to make sure event has been ingested
-        query();
+        List<JSONArray> queryResult = query();
+
+        int queryResultSize = queryResult.stream().map(n -> n.length()).reduce(0, (a, b) -> a + b);
+        Assertions.assertEquals(queryResultSize, 3, "the query should contain 3 events");
+
+        for (JSONArray events : queryResult) {
+            for (Object obj : events) {
+                JSONArray row = new JSONArray(obj.toString());
+                Assertions.assertEquals(row.getString(0), eventJson.getString("name"));
+                Assertions.assertEquals(row.getInt(1), eventJson.getInt("id"));
+            }
+        }
 
         // delete the connectors
         try {
