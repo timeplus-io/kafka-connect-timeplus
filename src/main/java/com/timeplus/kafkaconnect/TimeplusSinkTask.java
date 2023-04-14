@@ -1,6 +1,8 @@
 package com.timeplus.kafkaconnect;
 
 import java.io.IOException;
+
+import okhttp3.Interceptor;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -96,36 +98,35 @@ public class TimeplusSinkTask extends SinkTask {
                 .post(body)
                 .build();
 
-        Response response;
-        int retryCount = 0;
-        while (true) {
-            try {
-                response = client.newCall(request).execute();
-                if (!response.isSuccessful()) {
-                    if (response.code() == 429 || response.code() >= 500) {
-                        if (retryCount > MAX_RETRY_COUNT) {
-                            break;
-                        }
+        client.interceptors().add(new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) throws IOException {
+                Request request = chain.request();
 
-                        try {
-                            Thread.sleep(500); // sleep for 500 ms and retry
-                        } catch (InterruptedException e) {
-                            logger.warning("sleep interrupted " + e.getMessage());
-                        }
-                        response.close();
-                        retryCount += 1;
-                        continue;
-                    } else {
-                        logger.warning("ingest failed " + response.body().string());
-                        logger.warning("ingest failed request body " + bodyString);
-                    }
+                // try the request
+                Response response = chain.proceed(request);
+                int tryCount = 0;
+                while ((response.code() == 429 || response.code() >= 500) && tryCount < MAX_RETRY_COUNT) {
+                    logger.warning("intercept request is not successful - " + tryCount);
+                    tryCount++;
+                    // retry the request
+                    response.close();
+                    response = chain.proceed(request);
                 }
-                response.close();
-                break;
-            } catch (IOException e) {
-                logger.warning("ingest to post " + e.getMessage());
-                break;
+                // otherwise just pass the original response on
+                return response;
             }
+        });
+
+        Response response;
+        try {
+            response = client.newCall(request).execute();
+            if (!response.isSuccessful()) {
+                logger.severe("ingest to timeplus failed " + response.message());
+            }
+            response.close();
+        } catch (IOException e) {
+            logger.warning("ingest to post " + e.getMessage());
         }
     }
 
