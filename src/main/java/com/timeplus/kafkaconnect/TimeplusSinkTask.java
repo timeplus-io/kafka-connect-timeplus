@@ -24,6 +24,9 @@ public class TimeplusSinkTask extends SinkTask {
 
     private static final MediaType JSON = MediaType.get("application/json;format=streaming");
     private static final MediaType RAW = MediaType.get("text/plain;format=lines");
+
+    private static final int MAX_RETRY_COUNT = 10;
+
     OkHttpClient client = new OkHttpClient();
 
     String address;
@@ -43,7 +46,7 @@ public class TimeplusSinkTask extends SinkTask {
 
     @Override
     public String version() {
-        return "1.0";
+        return "1.0.1";
     }
 
     @Override
@@ -94,15 +97,35 @@ public class TimeplusSinkTask extends SinkTask {
                 .build();
 
         Response response;
-        try {
-            response = client.newCall(request).execute();
-            if (!response.isSuccessful()) {
-                logger.warning("ingest failed " + response.body().string());
-                logger.warning("ingest failed request body " + bodyString);
+        int retryCount = 0;
+        while (true) {
+            try {
+                response = client.newCall(request).execute();
+                if (!response.isSuccessful()) {
+                    if (response.code() == 429 || response.code() >= 500) {
+                        if (retryCount > MAX_RETRY_COUNT) {
+                            break;
+                        }
+
+                        try {
+                            Thread.sleep(500); // sleep for 500 ms and retry
+                        } catch (InterruptedException e) {
+                            logger.warning("sleep interrupted " + e.getMessage());
+                        }
+                        response.close();
+                        retryCount += 1;
+                        continue;
+                    } else {
+                        logger.warning("ingest failed " + response.body().string());
+                        logger.warning("ingest failed request body " + bodyString);
+                    }
+                }
+                response.close();
+                break;
+            } catch (IOException e) {
+                logger.warning("ingest to post " + e.getMessage());
+                break;
             }
-            response.close();
-        } catch (IOException e) {
-            logger.warning("ingest to post " + e.getMessage());
         }
     }
 
