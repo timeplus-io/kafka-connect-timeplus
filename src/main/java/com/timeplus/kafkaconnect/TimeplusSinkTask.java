@@ -1,8 +1,9 @@
 package com.timeplus.kafkaconnect;
 
 import java.io.IOException;
+import java.time.Duration;
 
-import okhttp3.Interceptor;
+import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -18,6 +19,9 @@ import org.apache.kafka.connect.sink.SinkTask;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.okhttp.FailsafeCall;
+
 /*
 Timeplus Sink Task
 */
@@ -28,6 +32,7 @@ public class TimeplusSinkTask extends SinkTask {
     private static final MediaType RAW = MediaType.get("text/plain;format=lines");
 
     private static final int MAX_RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MILLI = 500;
 
     OkHttpClient client = new OkHttpClient();
 
@@ -91,6 +96,13 @@ public class TimeplusSinkTask extends SinkTask {
             bodyString = bodyString + record.value() + "\n";
         }
 
+        // Define the retry policy
+        RetryPolicy<Response> retryPolicy = RetryPolicy.<Response>builder()
+                .handleResultIf(response -> response.code() == 429 || response.code() == 500)
+                .withDelay(Duration.ofMillis(RETRY_DELAY_MILLI))
+                .withMaxRetries(MAX_RETRY_COUNT)
+                .build();
+
         RequestBody body = RequestBody.create(bodyString, contentType);
         Request request = new Request.Builder()
                 .url(ingestUrl)
@@ -98,29 +110,11 @@ public class TimeplusSinkTask extends SinkTask {
                 .post(body)
                 .build();
 
-        client.interceptors().add(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                Request request = chain.request();
+        Call call = client.newCall(request);
+        FailsafeCall failsafeCall = FailsafeCall.with(retryPolicy).compose(call);
 
-                // try the request
-                Response response = chain.proceed(request);
-                int tryCount = 0;
-                while ((response.code() == 429 || response.code() >= 500) && tryCount < MAX_RETRY_COUNT) {
-                    logger.warning("intercept request is not successful - " + tryCount);
-                    tryCount++;
-                    // retry the request
-                    response.close();
-                    response = chain.proceed(request);
-                }
-                // otherwise just pass the original response on
-                return response;
-            }
-        });
-
-        Response response;
         try {
-            response = client.newCall(request).execute();
+            Response response = failsafeCall.execute();
             if (!response.isSuccessful()) {
                 logger.severe("ingest to timeplus failed " + response.message());
             }
