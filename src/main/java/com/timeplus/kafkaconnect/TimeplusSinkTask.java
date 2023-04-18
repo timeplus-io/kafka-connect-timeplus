@@ -1,6 +1,9 @@
 package com.timeplus.kafkaconnect;
 
 import java.io.IOException;
+import java.time.Duration;
+
+import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -9,38 +12,48 @@ import okhttp3.Response;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.logging.Logger;
+
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTask;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import dev.failsafe.RetryPolicy;
+import dev.failsafe.okhttp.FailsafeCall;
+
 /*
 Timeplus Sink Task
 */
 public class TimeplusSinkTask extends SinkTask {
+    private static Logger logger = Logger.getLogger(TimeplusSinkTask.class.getName());
 
     private static final MediaType JSON = MediaType.get("application/json;format=streaming");
     private static final MediaType RAW = MediaType.get("text/plain;format=lines");
-    private final OkHttpClient client = new OkHttpClient();
 
-    private String address;
-    private String workspace;
-    private String apiKey;
-    private String stream;
-    private String dataFormat;
-    private MediaType contentType;
-    private Boolean createStream;
+    private static final int MAX_RETRY_COUNT = 10;
+    private static final int RETRY_DELAY_MILLI = 500;
 
-    private String ingestUrl;
-    private String streamUrl;
-    private String inferUrl;
+    OkHttpClient client = new OkHttpClient();
 
-    private String createPayload;
-    private Boolean streamCreated;
+    String address;
+    String workspace;
+    String apiKey;
+    String stream;
+    String dataFormat;
+    MediaType contentType;
+    Boolean createStream;
+
+    String ingestUrl;
+    String streamUrl;
+    String inferUrl;
+
+    String createPayload;
+    Boolean streamCreated;
 
     @Override
     public String version() {
-        return "1.0";
+        return "1.0.1";
     }
 
     @Override
@@ -83,6 +96,13 @@ public class TimeplusSinkTask extends SinkTask {
             bodyString = bodyString + record.value() + "\n";
         }
 
+        // Define the retry policy
+        RetryPolicy<Response> retryPolicy = RetryPolicy.<Response>builder()
+                .handleResultIf(response -> response.code() == 429 || response.code() == 500)
+                .withDelay(Duration.ofMillis(RETRY_DELAY_MILLI))
+                .withMaxRetries(MAX_RETRY_COUNT)
+                .build();
+
         RequestBody body = RequestBody.create(bodyString, contentType);
         Request request = new Request.Builder()
                 .url(ingestUrl)
@@ -90,21 +110,23 @@ public class TimeplusSinkTask extends SinkTask {
                 .post(body)
                 .build();
 
-        Response response;
+        Call call = client.newCall(request);
+        FailsafeCall failsafeCall = FailsafeCall.with(retryPolicy).compose(call);
+
         try {
-            response = client.newCall(request).execute();
+            Response response = failsafeCall.execute();
             if (!response.isSuccessful()) {
-                System.out.println("ingest failed " + response.body().string());
-                System.out.println("ingest failed request body " + bodyString);
+                logger.severe("ingest to timeplus failed " + response.message());
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("ingest to post " + e.getMessage());
+            logger.warning("ingest to post " + e.getMessage());
         }
     }
 
     @Override
     public void stop() {
-        System.out.println("sink task stopped");
+        logger.info("sink task stopped");
     }
 
     private String getCreateRawPayload(String stream) {
@@ -132,7 +154,7 @@ public class TimeplusSinkTask extends SinkTask {
         return payload.toString();
     }
 
-    private void createStream(String event) {
+    void createStream(String event) {
         // TODO check if the stream already exist
         if (this.dataFormat.equals("raw")) {
             this.createPayload = getCreateRawPayload(this.stream);
@@ -151,14 +173,14 @@ public class TimeplusSinkTask extends SinkTask {
         try {
             response = client.newCall(request).execute();
             if (response.isSuccessful()) {
-                System.out.println("create stream success " + response.body().string());
+                logger.info("create stream success " + response.body().string());
             } else {
-                System.out.println("create stream failed " + response.body().string());
+                logger.warning("create stream failed " + response.body().string());
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("create stream failed " + e.getMessage());
+            logger.warning("create stream failed " + e.getMessage());
         }
-
     }
 
     private JSONArray infer(String event) {
@@ -178,16 +200,19 @@ public class TimeplusSinkTask extends SinkTask {
             response = client.newCall(request).execute();
             if (response.isSuccessful()) {
                 String resp = response.body().string(); // can only be called once
-                System.out.println("infer stream success " + resp);
-                JSONObject respObj = new JSONObject(resp);
-                return respObj.getJSONArray("inferred_columns");
+                if (resp != null) {
+                    logger.info("infer stream success " + resp);
+                    JSONObject respObj = new JSONObject(resp);
+                    response.close();
+                    return respObj.getJSONArray("inferred_columns");
+                }
             } else {
-                System.out.println("infer stream failed " + response.body().string());
+                logger.warning("infer stream failed " + response.body().string());
             }
+            response.close();
         } catch (IOException e) {
-            System.out.println("infer stream failed " + e.getMessage());
+            logger.warning("infer stream failed " + e.getMessage());
         }
         return new JSONArray();
     }
-
 }

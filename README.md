@@ -39,3 +39,7 @@ value.converter: org.apache.kafka.connect.storage.StringConverter
 ```
 
 Please check https://docs.timeplus.com/docs/kafka-connect for more details.
+
+## Support
+
+please email gang@timeplus.com if you have any question when using this plugin.
