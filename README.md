@@ -42,13 +42,14 @@ Please check https://docs.timeplus.com/docs/kafka-connect for more details.
 
 ## Integration Test
 
-to run integration test, you need have a timeplus cloud account and set following enironment and then run the integration using mvn:
+to run integration test, you need have a timeplus cloud account and set following enironment , build your local docker image and then run the integration using mvn:
 
 ```sh
 export TIMEPLUS_API_KEY=<your api key>
 export TIMEPLUS_ADDRESS=https://dev.timeplus.cloud
 export TIMEPLUS_WORKSPACE=<your workspace name>
 
+make docker
 mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationTest
 ```
 
