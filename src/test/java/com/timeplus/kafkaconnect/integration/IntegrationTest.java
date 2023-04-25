@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.images.PullPolicy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
 
@@ -51,8 +50,7 @@ public class IntegrationTest {
 
     @Container
     public GenericContainer kafkaConect = new GenericContainer(
-            DockerImageName.parse("timeplus/timeplus-kafkaconnect-sink:latest"))
-            .withImagePullPolicy(PullPolicy.alwaysPull())
+            DockerImageName.parse("timeplus-kafkaconnect-sink:dev"))
             .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost")
             .withEnv("CONNECT_GROUP_ID", "cg_connect_timeplus")
             .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "connect_timeplus_config")
@@ -299,7 +297,7 @@ public class IntegrationTest {
         System.out.println("Connecter created!");
         // wait event being handled
         try {
-            Thread.sleep(30000); // sleep for 15 seconds
+            Thread.sleep(100000); // sleep for 10 seconds
         } catch (InterruptedException e) {
             Assertions.fail(e);
         }
@@ -307,27 +305,26 @@ public class IntegrationTest {
         final String logs = kafkaConect.getLogs();
         System.out.println(logs);
 
-        // // query timeplus to make sure event has been ingested
-        // List<JSONArray> queryResult = query();
+        // query timeplus to make sure event has been ingested
+        List<JSONArray> queryResult = query();
 
-        // int queryResultSize = queryResult.stream().map(n -> n.length()).reduce(0, (a,
-        // b) -> a + b);
-        // Assertions.assertEquals(queryResultSize, 3, "the query should contain 3
-        // events");
+        int queryResultSize = queryResult.stream().map(n -> n.length()).reduce(0, (a, b) -> a + b);
 
-        // for (JSONArray events : queryResult) {
-        // for (Object obj : events) {
-        // JSONArray row = new JSONArray(obj.toString());
-        // Assertions.assertEquals(row.getString(0), eventJson.getString("name"));
-        // Assertions.assertEquals(row.getInt(1), eventJson.getInt("id"));
-        // }
-        // }
+        Assertions.assertEquals(queryResultSize, 3, "the query should contain 3 events");
 
-        // // delete the connectors
-        // try {
-        // deleteConnector(address, port);
-        // } catch (Exception exception) {
-        // Assertions.fail(exception);
-        // }
+        for (JSONArray events : queryResult) {
+            for (Object obj : events) {
+                JSONArray row = new JSONArray(obj.toString());
+                Assertions.assertEquals(row.getString(0), eventJson.getString("name"));
+                Assertions.assertEquals(row.getInt(1), eventJson.getInt("id"));
+            }
+        }
+
+        // delete the connectors
+        try {
+            deleteConnector(address, port);
+        } catch (Exception exception) {
+            Assertions.fail(exception);
+        }
     }
 }

@@ -40,6 +40,18 @@ value.converter: org.apache.kafka.connect.storage.StringConverter
 
 Please check https://docs.timeplus.com/docs/kafka-connect for more details.
 
+## Integration Test
+
+to run integration test, you need have a timeplus cloud account and set following enironment and then run the integration using mvn:
+
+```sh
+export TIMEPLUS_API_KEY=<your api key>
+export TIMEPLUS_ADDRESS=https://dev.timeplus.cloud
+export TIMEPLUS_WORKSPACE=<your workspace name>
+
+mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationTest
+```
+
 ## Support
 
 please email gang@timeplus.com if you have any question when using this plugin.
