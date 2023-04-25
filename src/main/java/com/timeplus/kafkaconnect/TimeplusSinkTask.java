@@ -64,7 +64,7 @@ public class TimeplusSinkTask extends SinkTask {
     public void start(Map<String, String> props) {
         TimeplusSinkConnectorConfig connectorConfig = new TimeplusSinkConnectorConfig(props);
         this.address = connectorConfig.getAddress();
-        this.apiKey = connectorConfig.getAPIKey();
+        this.apiKey = connectorConfig.getAPIKey().value();
         this.workspace = connectorConfig.getWorkspace();
         this.stream = connectorConfig.getStream();
         this.dataFormat = connectorConfig.getDataformat();

@@ -5,6 +5,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.types.Password;
 
 import static org.apache.kafka.common.config.ConfigDef.NO_DEFAULT_VALUE;
 
@@ -118,8 +119,8 @@ public class TimeplusSinkConnectorConfig extends AbstractConfig {
         return this.getString(SINK_WORKSPACE_CONFIG);
     }
 
-    public String getAPIKey() {
-        return this.getString(SINK_APIKEY_CONFIG);
+    public Password getAPIKey() {
+        return this.getPassword(SINK_APIKEY_CONFIG);
     }
 
     public Boolean getCreateStream() {
