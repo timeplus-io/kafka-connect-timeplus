@@ -145,7 +145,7 @@ public class IntegrationTest {
         consumer.close(Duration.ofMillis(3000));
     }
 
-    void createConnector(String address, Integer port) throws IOException {
+    void createConnector(String address, Integer port) {
         OkHttpClient client = new OkHttpClient();
 
         MediaType mediaType = MediaType.parse("application/json");
@@ -171,9 +171,23 @@ public class IntegrationTest {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        Response response = client.newCall(request).execute();
-        System.out.println(response.body().string());
-        System.out.println("connector is created!");
+        Response response = null;
+        try {
+            response = client.newCall(request).execute();
+            if (response != null && response.isSuccessful()) {
+                System.out.println(response.body().string());
+                System.out.println("connector is created!");
+            } else {
+
+            }
+        } catch (IOException ex) {
+            Assertions.fail(ex);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+
     }
 
     void deleteConnector(String address, Integer port) throws IOException {
@@ -248,9 +262,6 @@ public class IntegrationTest {
             @Override
             public void onFailure(EventSource eventSource, Throwable e,
                     Response response) {
-                System.out.println(response);
-                System.out.println(e);
-                System.out.println(eventSource);
                 Assertions.fail(e);
             }
         };
@@ -288,11 +299,7 @@ public class IntegrationTest {
         }
 
         // create kafka timeplus sink connector
-        try {
-            createConnector(address, port);
-        } catch (Exception exception) {
-            Assertions.fail(exception);
-        }
+        createConnector(address, port);
 
         System.out.println("Connecter created!");
         // wait event being handled

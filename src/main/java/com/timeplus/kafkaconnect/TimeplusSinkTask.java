@@ -137,7 +137,7 @@ public class TimeplusSinkTask extends SinkTask {
         logger.info("sink task stopped");
     }
 
-    private String getCreateRawPayload(String stream) {
+    private String getCreateStreamRawPayload(String stream) {
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
 
@@ -148,10 +148,8 @@ public class TimeplusSinkTask extends SinkTask {
         return payload.toString();
     }
 
-    private String getCreateJSONPayload(String stream, String event) {
+    private String getCreateStreamJSONPayload(String stream, String event) {
         JSONArray inferredColums = this.infer(event);
-        logger.info("inferred columns : " + inferredColums);
-
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
         payload.put("columns", inferredColums);
@@ -161,9 +159,9 @@ public class TimeplusSinkTask extends SinkTask {
     void createStream(String event) {
         // TODO check if the stream already exist
         if (this.dataFormat.equals("raw")) {
-            this.createPayload = getCreateRawPayload(this.stream);
+            this.createPayload = getCreateStreamRawPayload(this.stream);
         } else {
-            this.createPayload = getCreateJSONPayload(this.stream, event);
+            this.createPayload = getCreateStreamJSONPayload(this.stream, event);
         }
 
         RequestBody body = RequestBody.create(this.createPayload, JSON);
@@ -208,7 +206,6 @@ public class TimeplusSinkTask extends SinkTask {
             if (response != null && response.isSuccessful()) {
                 String resp = response.body().string(); // can only be called once
                 if (resp != null) {
-                    logger.info("infer stream success " + resp);
                     JSONObject respObj = new JSONObject(resp);
                     return respObj.getJSONArray("inferred_columns");
                 }
