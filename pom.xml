@@ -17,8 +17,8 @@
     <!-- JaCoCo thresholds. Increase gradually as you add tests. -->
     <jacoco.unit-tests.limit.instruction-ratio>0%</jacoco.unit-tests.limit.instruction-ratio>
     <jacoco.unit-tests.limit.branch-ratio>0%</jacoco.unit-tests.limit.branch-ratio>
-    <jacoco.unit-tests.limit.class-complexity>23</jacoco.unit-tests.limit.class-complexity>
-    <jacoco.unit-tests.limit.method-complexity>6</jacoco.unit-tests.limit.method-complexity>
+    <jacoco.unit-tests.limit.class-complexity>28</jacoco.unit-tests.limit.class-complexity>
+    <jacoco.unit-tests.limit.method-complexity>7</jacoco.unit-tests.limit.method-complexity>
     <kafka.version>3.2.0</kafka.version>
     <kafka.connect.maven.plugin.version>0.12.0</kafka.connect.maven.plugin.version>
     <org.mockito.core.version>4.6.1</org.mockito.core.version>

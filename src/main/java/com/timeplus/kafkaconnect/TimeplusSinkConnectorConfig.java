@@ -73,7 +73,7 @@ public class TimeplusSinkConnectorConfig extends AbstractConfig {
                         ConfigDef.Width.SHORT,
                         SINK_WORKSPACE_DISPLAY)
                 .define(SINK_APIKEY_CONFIG,
-                        Type.STRING,
+                        Type.PASSWORD,
                         SINK_APIKEY_DEFAULT,
                         Importance.HIGH,
                         SINK_APIKEY_DOC,
