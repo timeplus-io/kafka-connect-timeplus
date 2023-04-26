@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.images.PullPolicy;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.utility.DockerImageName;
 
@@ -51,8 +50,7 @@ public class IntegrationTest {
 
     @Container
     public GenericContainer kafkaConect = new GenericContainer(
-            DockerImageName.parse("timeplus/timeplus-kafkaconnect-sink:latest"))
-            .withImagePullPolicy(PullPolicy.alwaysPull())
+            DockerImageName.parse("timeplus-kafkaconnect-sink:dev"))
             .withEnv("CONNECT_REST_ADVERTISED_HOST_NAME", "localhost")
             .withEnv("CONNECT_GROUP_ID", "cg_connect_timeplus")
             .withEnv("CONNECT_CONFIG_STORAGE_TOPIC", "connect_timeplus_config")
@@ -147,7 +145,7 @@ public class IntegrationTest {
         consumer.close(Duration.ofMillis(3000));
     }
 
-    void createConnector(String address, Integer port) throws IOException {
+    void createConnector(String address, Integer port) {
         OkHttpClient client = new OkHttpClient();
 
         MediaType mediaType = MediaType.parse("application/json");
@@ -173,8 +171,23 @@ public class IntegrationTest {
                 .addHeader("Content-Type", "application/json")
                 .build();
 
-        Response response = client.newCall(request).execute();
-        System.out.println(response.body().string());
+        Response response = null;
+        try {
+            response = client.newCall(request).execute();
+            if (response != null && response.isSuccessful()) {
+                System.out.println(response.body().string());
+                System.out.println("connector is created!");
+            } else {
+
+            }
+        } catch (IOException ex) {
+            Assertions.fail(ex);
+        } finally {
+            if (response != null) {
+                response.close();
+            }
+        }
+
     }
 
     void deleteConnector(String address, Integer port) throws IOException {
@@ -286,23 +299,24 @@ public class IntegrationTest {
         }
 
         // create kafka timeplus sink connector
-        try {
-            createConnector(address, port);
-        } catch (Exception exception) {
-            Assertions.fail(exception);
-        }
+        createConnector(address, port);
 
+        System.out.println("Connecter created!");
         // wait event being handled
         try {
-            Thread.sleep(15000); // sleep for 15 seconds
+            Thread.sleep(100000); // sleep for 10 seconds
         } catch (InterruptedException e) {
             Assertions.fail(e);
         }
+
+        final String logs = kafkaConect.getLogs();
+        System.out.println(logs);
 
         // query timeplus to make sure event has been ingested
         List<JSONArray> queryResult = query();
 
         int queryResultSize = queryResult.stream().map(n -> n.length()).reduce(0, (a, b) -> a + b);
+
         Assertions.assertEquals(queryResultSize, 3, "the query should contain 3 events");
 
         for (JSONArray events : queryResult) {

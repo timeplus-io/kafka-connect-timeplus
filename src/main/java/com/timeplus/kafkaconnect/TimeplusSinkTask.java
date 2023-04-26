@@ -34,6 +34,8 @@ public class TimeplusSinkTask extends SinkTask {
     private static final int MAX_RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MILLI = 500;
 
+    private static final String TIMEPLUS_API_VERSION_PREFIX = "/api/v1beta1";
+
     OkHttpClient client = new OkHttpClient();
 
     String address;
@@ -51,6 +53,8 @@ public class TimeplusSinkTask extends SinkTask {
     String createPayload;
     Boolean streamCreated;
 
+    final private JSONObject RAW_COL = (new JSONObject()).put("name", "raw").put("type", "string");
+
     @Override
     public String version() {
         return "1.0.1";
@@ -60,15 +64,15 @@ public class TimeplusSinkTask extends SinkTask {
     public void start(Map<String, String> props) {
         TimeplusSinkConnectorConfig connectorConfig = new TimeplusSinkConnectorConfig(props);
         this.address = connectorConfig.getAddress();
-        this.apiKey = connectorConfig.getAPIKey();
+        this.apiKey = connectorConfig.getAPIKey().value();
         this.workspace = connectorConfig.getWorkspace();
         this.stream = connectorConfig.getStream();
         this.dataFormat = connectorConfig.getDataformat();
         this.createStream = connectorConfig.getCreateStream();
 
-        this.streamUrl = address + "/" + workspace + "/api/v1beta1/streams/";
-        this.ingestUrl = address + "/" + workspace + "/api/v1beta1/streams/" + stream + "/ingest";
-        this.inferUrl = address + "/" + workspace + "/api/v1beta1/source/infer";
+        this.streamUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/";
+        this.ingestUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/" + stream + "/ingest";
+        this.inferUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/source/infer";
 
         if (this.dataFormat.equals("raw")) {
             this.contentType = RAW;
@@ -85,16 +89,16 @@ public class TimeplusSinkTask extends SinkTask {
             return;
         }
 
-        String bodyString = "";
-
+        String bodyString;
+        StringBuilder sb = new StringBuilder();
         for (SinkRecord record : records) {
             if (!streamCreated && this.createStream) {
                 createStream(record.value().toString());
                 streamCreated = true; // only create once
             }
-
-            bodyString = bodyString + record.value() + "\n";
+            sb.append(record.value()).append("\n");
         }
+        bodyString = sb.toString();
 
         // Define the retry policy
         RetryPolicy<Response> retryPolicy = RetryPolicy.<Response>builder()
@@ -113,14 +117,18 @@ public class TimeplusSinkTask extends SinkTask {
         Call call = client.newCall(request);
         FailsafeCall failsafeCall = FailsafeCall.with(retryPolicy).compose(call);
 
+        Response response = null;
         try {
-            Response response = failsafeCall.execute();
+            response = failsafeCall.execute();
             if (!response.isSuccessful()) {
                 logger.severe("ingest to timeplus failed " + response.message());
             }
-            response.close();
         } catch (IOException e) {
             logger.warning("ingest to post " + e.getMessage());
+        } finally {
+            if (response != null) {
+                response.close();
+            }
         }
     }
 
@@ -129,25 +137,19 @@ public class TimeplusSinkTask extends SinkTask {
         logger.info("sink task stopped");
     }
 
-    private String getCreateRawPayload(String stream) {
+    private String getCreateStreamRawPayload(String stream) {
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
 
-        JSONObject col = new JSONObject();
-        col.put("name", "raw");
-        col.put("type", "string");
-
         JSONArray cols = new JSONArray();
-        cols.put(col);
+        cols.put(RAW_COL);
         payload.put("columns", cols);
 
         return payload.toString();
     }
 
-    private String getCreateJSONPayload(String stream, String event) {
+    private String getCreateStreamJSONPayload(String stream, String event) {
         JSONArray inferredColums = this.infer(event);
-        System.out.println("inferred colume : " + inferredColums);
-
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
         payload.put("columns", inferredColums);
@@ -157,9 +159,9 @@ public class TimeplusSinkTask extends SinkTask {
     void createStream(String event) {
         // TODO check if the stream already exist
         if (this.dataFormat.equals("raw")) {
-            this.createPayload = getCreateRawPayload(this.stream);
+            this.createPayload = getCreateStreamRawPayload(this.stream);
         } else {
-            this.createPayload = getCreateJSONPayload(this.stream, event);
+            this.createPayload = getCreateStreamJSONPayload(this.stream, event);
         }
 
         RequestBody body = RequestBody.create(this.createPayload, JSON);
@@ -169,17 +171,20 @@ public class TimeplusSinkTask extends SinkTask {
                 .post(body)
                 .build();
 
-        Response response;
+        Response response = null;
         try {
             response = client.newCall(request).execute();
-            if (response.isSuccessful()) {
+            if (response != null && response.isSuccessful()) {
                 logger.info("create stream success " + response.body().string());
             } else {
                 logger.warning("create stream failed " + response.body().string());
             }
-            response.close();
         } catch (IOException e) {
             logger.warning("create stream failed " + e.getMessage());
+        } finally {
+            if (response != null) {
+                response.close();
+            }
         }
     }
 
@@ -195,23 +200,24 @@ public class TimeplusSinkTask extends SinkTask {
                 .post(body)
                 .build();
 
-        Response response;
+        Response response = null;
         try {
             response = client.newCall(request).execute();
-            if (response.isSuccessful()) {
+            if (response != null && response.isSuccessful()) {
                 String resp = response.body().string(); // can only be called once
                 if (resp != null) {
-                    logger.info("infer stream success " + resp);
                     JSONObject respObj = new JSONObject(resp);
-                    response.close();
                     return respObj.getJSONArray("inferred_columns");
                 }
             } else {
                 logger.warning("infer stream failed " + response.body().string());
             }
-            response.close();
         } catch (IOException e) {
             logger.warning("infer stream failed " + e.getMessage());
+        } finally {
+            if (response != null) {
+                response.close();
+            }
         }
         return new JSONArray();
     }
