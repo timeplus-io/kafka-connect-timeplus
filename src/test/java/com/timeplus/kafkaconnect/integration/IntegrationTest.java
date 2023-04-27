@@ -304,7 +304,7 @@ public class IntegrationTest {
         System.out.println("Connecter created!");
         // wait event being handled
         try {
-            Thread.sleep(100000); // sleep for 10 seconds
+            Thread.sleep(10000); // sleep for 10 seconds
         } catch (InterruptedException e) {
             Assertions.fail(e);
         }
