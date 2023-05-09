@@ -222,14 +222,14 @@ public class IntegrationTest {
         System.out.println(response.body().string());
     }
 
-    List<JSONArray> query() {
+    List<JSONArray> query(int maxEvents) {
         OkHttpClient client = new OkHttpClient();
         String url = System.getenv("TIMEPLUS_ADDRESS") + "/" + System.getenv("TIMEPLUS_WORKSPACE")
                 + "/api/v1beta2/queries/";
 
         MediaType mediaType = MediaType.parse("application/json");
         JSONObject requestBodyJson = new JSONObject();
-        requestBodyJson.put("sql", "select * from table(" + STREAM + ")");
+        requestBodyJson.put("sql", "select * from " + STREAM + " where _tp_time > now() -1h");
 
         RequestBody body = RequestBody.create(requestBodyJson.toString(), mediaType);
 
@@ -241,13 +241,18 @@ public class IntegrationTest {
                 .build();
 
         List<JSONArray> result = new ArrayList<JSONArray>();
-
         EventSourceListener listener = new EventSourceListener() {
+            int eventSize = 0;
+
             @Override
             public void onEvent(EventSource eventSource, String id, String type, String data) {
                 if (type == null) {
                     JSONArray events = new JSONArray(data);
                     result.add(events);
+                    eventSize += events.length();
+                    if (eventSize >= maxEvents) {
+                        eventSource.cancel();
+                    }
                 }
             }
 
@@ -262,20 +267,30 @@ public class IntegrationTest {
             @Override
             public void onFailure(EventSource eventSource, Throwable e,
                     Response response) {
-                Assertions.fail(e);
             }
         };
 
         RealEventSource eventSource = new RealEventSource(request, listener);
         eventSource.connect(client);
 
-        try {
-            Thread.sleep(5000); // sleep for 15 seconds
-        } catch (InterruptedException e) {
-            Assertions.fail(e);
-        }
+        while (true) {
+            int size = 0;
+            for (JSONArray rows : result) {
+                size += rows.length();
+            }
+            System.out.println("the result size is " + result.size());
+            if (size >= maxEvents) {
+                eventSource.cancel();
+                break;
+            }
 
-        eventSource.cancel();
+            try {
+                Thread.sleep(100); // sleep for 100 milli-seconds
+            } catch (InterruptedException e) {
+                Assertions.fail(e);
+            }
+        }
+        System.out.println("the result is " + result);
         return result;
     }
 
@@ -298,22 +313,22 @@ public class IntegrationTest {
             Assertions.fail(exception);
         }
 
-        // create kafka timeplus sink connector
+        // te kafka timeplus sink connector
         createConnector(address, port);
 
         System.out.println("Connecter created!");
-        // wait event being handled
+        // wait connector to be created
         try {
             Thread.sleep(10000); // sleep for 10 seconds
         } catch (InterruptedException e) {
             Assertions.fail(e);
         }
 
-        final String logs = kafkaConect.getLogs();
-        System.out.println(logs);
+        // final String logs = kafkaConect.getLogs();
+        // System.out.println(logs);
 
         // query timeplus to make sure event has been ingested
-        List<JSONArray> queryResult = query();
+        List<JSONArray> queryResult = query(3);
 
         int queryResultSize = queryResult.stream().map(n -> n.length()).reduce(0, (a, b) -> a + b);
 
