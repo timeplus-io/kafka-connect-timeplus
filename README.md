@@ -49,7 +49,7 @@ to run integration test, you need have a timeplus cloud account and set followin
 ```sh
 export TIMEPLUS_API_KEY=<your api key>
 export TIMEPLUS_ADDRESS=https://us.timeplus.cloud
-export TIMEPLUS_WORKSPACE=<your workspace name>
+export TIMEPLUS_WORKSPACE=<your workspace id>
 
 make docker
 mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationTest
