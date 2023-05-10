@@ -19,7 +19,7 @@ public class TimeplusSinkConnector extends SinkConnector {
 
     @Override
     public String version() {
-        return "1.0.1";
+        return "1.0.2";
     }
 
     @Override
