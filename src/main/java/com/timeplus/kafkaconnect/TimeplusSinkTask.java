@@ -34,7 +34,7 @@ public class TimeplusSinkTask extends SinkTask {
     private static final int MAX_RETRY_COUNT = 10;
     private static final int RETRY_DELAY_MILLI = 500;
 
-    private static final String TIMEPLUS_API_VERSION_PREFIX = "/api/v1beta1";
+    private static final String TIMEPLUS_API_VERSION_PREFIX = "/api/v1beta2";
 
     OkHttpClient client = new OkHttpClient();
 
@@ -57,7 +57,7 @@ public class TimeplusSinkTask extends SinkTask {
 
     @Override
     public String version() {
-        return "1.0.1";
+        return "1.0.4";
     }
 
     @Override
