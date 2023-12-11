@@ -23,7 +23,7 @@
     <kafka.connect.maven.plugin.version>0.12.0</kafka.connect.maven.plugin.version>
     <org.mockito.core.version>4.6.1</org.mockito.core.version>
     <org.mockito.junit.version>5.2.0</org.mockito.junit.version>
-    <com.squareup.okhttp3.version>4.10.0</com.squareup.okhttp3.version>
+    <com.squareup.okhttp3.version>4.12.0</com.squareup.okhttp3.version>
     <dev.failsafe.version>3.3.1</dev.failsafe.version>
     <org.testcontainers.version>1.18.0</org.testcontainers.version>
   </properties>
