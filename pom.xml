@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.timeplus.kafkaconnect</groupId>
   <artifactId>kafka-timeplus-connector-sink</artifactId>
-  <version>1.0.4</version>
+  <version>1.0.5</version>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -162,7 +162,7 @@
           <archive>
             <manifestEntries>
               <Implementation-Title>Timeplus Kafka Sink Connect</Implementation-Title>
-              <Implementation-Version>1.0.4</Implementation-Version>
+              <Implementation-Version>1.0.5</Implementation-Version>
               <Implementation-Vendor>Timeplus Inc.</Implementation-Vendor>
               <Implementation-Vendor-Email>gang@timeplus.com</Implementation-Vendor-Email>
               <Implementation-Vendor-Website>https://www.timeplus.com/</Implementation-Vendor-Website>
