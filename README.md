@@ -14,14 +14,14 @@ The following configurations are supported
 | -------------------------- | -------------------------------------------------- |
 | name                       | ID for the plugin instance                         |
 | connector.class            | com.timeplus.kafkaconnect.TimeplusSinkConnector    |
-| timeplus.sink.address      | Address to Timeplus Cloud or self-managed Timeplus |
-| timeplus.sink.workspace    | Timeplus workspace ID                              |
+| timeplus.sink.address      | Address to Timeplus Cloud or self-managed Timeplus Or Proton Address |
+| timeplus.sink.workspace    | Timeplus workspace ID, when set to empty, will use Proton as target  |
 | timeplus.sink.apikey       | API Key for the workspace, 60 chars long           |
 | timeplus.sink.stream       | destination stream name                            |
 | timeplus.sink.createStream | whether to create the stream if not exist          |
-| timeplus.sink.dataFormat   | stream data format. Either `raw` or `json`         |
+| timeplus.sink.dataFormat   | stream data format. Either `raw` or `json`, when target Proton, only `raw` mode is supported |
 
-Here is an example configuration:
+Here is an example configuration of timeplus cloud as target:
 
 ```properties
 name: TimeplusSink
@@ -31,6 +31,23 @@ topics: my_topic
 timeplus.sink.address: https://us.timeplus.cloud
 timeplus.sink.workspace: abc123
 timeplus.sink.apikey: 60_char_API_Key
+timeplus.sink.stream: data_from_kafka
+timeplus.sink.createStream: true
+timeplus.sink.dataFormat: raw
+key.converter: org.apache.kafka.connect.storage.StringConverter
+value.converter: org.apache.kafka.connect.storage.StringConverter
+```
+
+Here is an example configuration of using Proton as target:
+
+```properties
+name: TimeplusSink
+connector.class: com.timeplus.kafkaconnect.TimeplusSinkConnector
+tasks.max: 1
+topics: my_topic
+timeplus.sink.address: http://localhost:3218
+timeplus.sink.workspace: <leave empty>
+timeplus.sink.apikey: <leave empty>
 timeplus.sink.stream: data_from_kafka
 timeplus.sink.createStream: true
 timeplus.sink.dataFormat: raw
