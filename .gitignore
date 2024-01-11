@@ -1,5 +1,5 @@
 env.sh
-
+*log.txt
 /target
 
 # Compiled class file

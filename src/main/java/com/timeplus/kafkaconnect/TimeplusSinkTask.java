@@ -35,6 +35,7 @@ public class TimeplusSinkTask extends SinkTask {
     private static final int RETRY_DELAY_MILLI = 500;
 
     private static final String TIMEPLUS_API_VERSION_PREFIX = "/api/v1beta2";
+    private static final String PROTON_API_VERSION_PREFIX = "/proton/v1";
 
     OkHttpClient client = new OkHttpClient();
 
@@ -45,6 +46,8 @@ public class TimeplusSinkTask extends SinkTask {
     String dataFormat;
     MediaType contentType;
     Boolean createStream;
+
+    Boolean isProton = false;
 
     String ingestUrl;
     String streamUrl;
@@ -70,16 +73,27 @@ public class TimeplusSinkTask extends SinkTask {
         this.dataFormat = connectorConfig.getDataformat();
         this.createStream = connectorConfig.getCreateStream();
 
-        this.streamUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/";
-        this.ingestUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/" + stream + "/ingest";
-        this.inferUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/source/infer";
-
-        if (this.dataFormat.equals("raw")) {
-            this.contentType = RAW;
-        } else {
-            this.contentType = JSON;
+        if ( this.workspace.length() == 0 ) {
+            this.isProton = true;
         }
 
+        if ( this.isProton ) {
+            logger.warning("using proton as target : " + address );
+            this.contentType = RAW;  // with proton, only support RAW mode, as there is no schema infer
+            this.dataFormat = "raw";
+            this.streamUrl = address + PROTON_API_VERSION_PREFIX + "/ddl/streams";
+            this.ingestUrl = address + PROTON_API_VERSION_PREFIX + "/ingest/streams/" + stream;
+        } else {
+            this.streamUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/";
+            this.ingestUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/streams/" + stream + "/ingest";
+            this.inferUrl = address + "/" + workspace + TIMEPLUS_API_VERSION_PREFIX + "/source/infer";
+
+            if (this.dataFormat.equals("raw")) {
+                this.contentType = RAW;
+            } else {
+                this.contentType = JSON;
+            }
+        }
         this.streamCreated = false;
     }
 
@@ -90,15 +104,23 @@ public class TimeplusSinkTask extends SinkTask {
         }
 
         String bodyString;
-        StringBuilder sb = new StringBuilder();
-        for (SinkRecord record : records) {
+        if (this.dataFormat.equals("raw")) {
             if (!streamCreated && this.createStream) {
-                createStream(record.value().toString());
+                createStream(null);
                 streamCreated = true; // only create once
             }
-            sb.append(record.value()).append("\n");
+            bodyString = getRawIngestPayload(records);
+        } else {
+            StringBuilder sb = new StringBuilder();
+            for (SinkRecord record : records) {
+                if (!streamCreated && this.createStream) {
+                    createStream(record.value().toString());
+                    streamCreated = true; // only create once
+                }
+                sb.append(record.value()).append("\n");
+            }
+            bodyString = sb.toString();
         }
-        bodyString = sb.toString();
 
         // Define the retry policy
         RetryPolicy<Response> retryPolicy = RetryPolicy.<Response>builder()
@@ -121,7 +143,9 @@ public class TimeplusSinkTask extends SinkTask {
         try {
             response = failsafeCall.execute();
             if (!response.isSuccessful()) {
-                logger.severe("ingest to timeplus failed " + response.message());
+                logger.severe("ingest to timeplus failed : message -> " + response.message());
+                logger.severe("ingest to timeplus failed : response -> " + response.body().string());
+                logger.severe("ingest to timeplus failed : payload -> " + bodyString);
             }
         } catch (IOException e) {
             logger.warning("ingest to post " + e.getMessage());
@@ -137,6 +161,23 @@ public class TimeplusSinkTask extends SinkTask {
         logger.info("sink task stopped");
     }
 
+    private String getRawIngestPayload(Collection<SinkRecord> records) {
+        JSONObject payload = new JSONObject();
+
+        JSONArray cols = new JSONArray();
+        cols.put("raw");
+        payload.put("columns", cols);
+
+        JSONArray data = new JSONArray();
+        for (SinkRecord record : records) {
+            JSONArray row = new JSONArray();
+            row.put(record.value().toString());
+            data.put(row);
+        }
+        payload.put("data", data);
+        return payload.toString();
+    }
+
     private String getCreateStreamRawPayload(String stream) {
         JSONObject payload = new JSONObject();
         payload.put("name", stream);
@@ -144,7 +185,6 @@ public class TimeplusSinkTask extends SinkTask {
         JSONArray cols = new JSONArray();
         cols.put(RAW_COL);
         payload.put("columns", cols);
-
         return payload.toString();
     }
 
@@ -177,10 +217,10 @@ public class TimeplusSinkTask extends SinkTask {
             if (response != null && response.isSuccessful()) {
                 logger.info("create stream success " + response.body().string());
             } else {
-                logger.warning("create stream failed " + response.body().string());
+                logger.info("create stream failed " + response.body().string());
             }
         } catch (IOException e) {
-            logger.warning("create stream failed " + e.getMessage());
+            logger.info("create stream failed " + e.getMessage());
         } finally {
             if (response != null) {
                 response.close();

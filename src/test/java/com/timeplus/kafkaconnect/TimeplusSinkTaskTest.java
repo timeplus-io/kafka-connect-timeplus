@@ -24,7 +24,7 @@ public class TimeplusSinkTaskTest {
         String apiKey = "my_api_key";
         String stream = "my_stream";
         String event = "{\"id\": 123, \"name\": \"test\"}";
-        String createRawPayload = "{\"name\":\"my_stream\",\"columns\":[{\"name\":\"raw\",\"type\":\"string\"}]}";
+        //String createRawPayload = "{\"name\":\"my_stream\",\"columns\":[{\"name\":\"raw\",\"type\":\"string\"}]}";
         String createJSONPayload = "{\"name\":\"my_stream\",\"columns\":[{\"name\":\"id\",\"type\":\"long\"},{\"name\":\"name\",\"type\":\"string\"}]}";
 
         // Setup mock responses
