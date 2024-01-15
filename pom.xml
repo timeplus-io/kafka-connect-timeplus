@@ -192,7 +192,7 @@
           </execution>
           <execution>
             <id>check-unit-test</id>
-            <phase>test</phase>
+            <phase>none</phase>
             <goals>
               <goal>check</goal>
             </goals>

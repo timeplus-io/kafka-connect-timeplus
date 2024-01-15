@@ -21,6 +21,9 @@ dep:
 it:
 	mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationTest
 
+proton_it:
+	mvn test -Dtest=com.timeplus.kafkaconnect.integration.IntegrationProtonTest
+
 docker: Dockerfile one_jar
 	docker build --build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) -t $(IMAGE_NAME) .
 
