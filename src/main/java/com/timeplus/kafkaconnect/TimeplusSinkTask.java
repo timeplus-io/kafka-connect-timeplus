@@ -143,12 +143,12 @@ public class TimeplusSinkTask extends SinkTask {
         try {
             response = failsafeCall.execute();
             if (!response.isSuccessful()) {
-                logger.severe("ingest to timeplus failed : message -> " + response.message());
-                logger.severe("ingest to timeplus failed : response -> " + response.body().string());
-                logger.severe("ingest to timeplus failed : payload -> " + bodyString);
+                logger.severe("ingest to Timeplus failed : message -> " + response.message());
+                logger.severe("ingest to Timeplus failed : response -> " + response.body().string());
+                logger.severe("ingest to Timeplus failed : payload -> " + bodyString);
             }
         } catch (IOException e) {
-            logger.warning("ingest to post " + e.getMessage());
+            logger.warning("ingest failed due to: " + e.getMessage());
         } finally {
             if (response != null) {
                 response.close();
@@ -217,10 +217,10 @@ public class TimeplusSinkTask extends SinkTask {
             if (response != null && response.isSuccessful()) {
                 logger.info("create stream success " + response.body().string());
             } else {
-                logger.info("create stream failed " + response.body().string());
+                logger.info("failed to create stream : " + response.body().string());
             }
         } catch (IOException e) {
-            logger.info("create stream failed " + e.getMessage());
+            logger.info("failed to create stream : " + e.getMessage());
         } finally {
             if (response != null) {
                 response.close();
