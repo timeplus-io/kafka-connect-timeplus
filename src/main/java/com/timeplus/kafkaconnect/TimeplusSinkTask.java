@@ -60,7 +60,7 @@ public class TimeplusSinkTask extends SinkTask {
 
     @Override
     public String version() {
-        return "1.0.5";
+        return "1.0.6";
     }
 
     @Override
